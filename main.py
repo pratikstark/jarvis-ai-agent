@@ -166,15 +166,9 @@ def save_local_history(history: Dict[str, MessageHistory]):
 # Global storage
 message_history = load_local_history()
 
-# Supabase integration
-if config.use_supabase:
-    try:
-        from supabase import create_client, Client
-        supabase: Client = create_client(config.supabase_url, config.supabase_key)
-        logger.info("Supabase client initialized successfully")
-    except Exception as e:
-        logger.error(f"Failed to initialize Supabase: {e}")
-        config.use_supabase = False
+# Supabase integration - temporarily disabled for deployment
+config.use_supabase = False
+logger.info("Supabase integration disabled for deployment - using local storage only")
 
 def get_message_history(user_id: str) -> List[Dict[str, Any]]:
     """Get message history for a user"""
@@ -415,20 +409,15 @@ def log_agent_thoughts(user_id: str, message: str, ai_reply: str, context: Dict[
     
     logger.info(f"Agent thoughts: {log_entry['thoughts']}")
     
-    # Save to Supabase if available
-    if config.use_supabase:
-        try:
-            supabase.table("agent_logs").insert(log_entry).execute()
-        except Exception as e:
-            logger.error(f"Error saving agent logs to Supabase: {e}")
+    # Log to console only for now (Supabase disabled for deployment)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     logger.info("🚀 Jarvis AI Agent starting up...")
     logger.info(f"Using model: {config.model}")
-    logger.info(f"Storage: {'Supabase' if config.use_supabase else 'Local JSON'}")
-    logger.info(f"AI API: {'OpenRouter' if config.openrouter_api_key else 'Simulation mode'}")
+    logger.info(f"Storage: Local JSON (Supabase disabled for deployment)")
+    logger.info(f"AI API: {'OpenRouter' if config.openrouter_api_key and config.openrouter_api_key != 'your_api_key_here' else 'Simulation mode'}")
     
     # Start Telegram bot if enabled
     if config.enable_telegram:
@@ -484,8 +473,10 @@ async def root():
         "message": "Jarvis AI Agent is running!",
         "status": "healthy",
         "model": config.model,
-        "storage": "Supabase" if config.use_supabase else "Local JSON",
-        "ai_ready": bool(config.openrouter_api_key and config.openrouter_api_key != "your_api_key_here")
+        "storage": "Local JSON (Supabase disabled for deployment)",
+        "ai_ready": bool(config.openrouter_api_key and config.openrouter_api_key != "your_api_key_here"),
+        "slack_enabled": config.enable_slack,
+        "telegram_enabled": config.enable_telegram
     }
 
 @app.post("/talk", response_model=AIResponse)
@@ -565,12 +556,9 @@ async def get_history(user_id: str):
 async def clear_history(user_id: str):
     """Clear conversation history for a user"""
     try:
-        if config.use_supabase:
-            supabase.table("message_history").delete().eq("user_id", user_id).execute()
-        else:
-            if user_id in message_history:
-                del message_history[user_id]
-                save_local_history(message_history)
+        if user_id in message_history:
+            del message_history[user_id]
+            save_local_history(message_history)
         
         logger.info(f"Cleared history for user {user_id}")
         return {"message": "History cleared successfully"}
