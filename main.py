@@ -151,10 +151,10 @@ def save_message_history(user_id: str, messages: List[Dict[str, Any]]):
 
 async def call_openrouter(message: str, history: List[Dict[str, Any]]) -> str:
     """Call OpenRouter API to get AI response"""
-    if not config.openrouter_api_key:
+    if not config.openrouter_api_key or config.openrouter_api_key == "your_api_key_here":
         # Simulate AI response for testing
-        logger.info("Simulating AI response (no API key)")
-        return "🤖 **AI Service Not Configured**\n\nI'm currently in simulation mode because no AI API key is configured.\n\n**To fix this:**\n1. Get an API key from https://openrouter.ai/\n2. Add it to your environment variables:\n   `OPENROUTER_API_KEY=your_key_here`\n3. Restart the service\n\nFor now, I can help with basic responses!"
+        logger.info("Simulating AI response (no API key or invalid placeholder)")
+        return "🤖 **AI Service Not Configured**\n\nI'm currently in simulation mode because no valid AI API key is configured.\n\n**To fix this:**\n1. Get an API key from https://openrouter.ai/\n2. Add it to your environment variables:\n   `OPENROUTER_API_KEY=your_actual_key_here`\n3. Restart the service\n\nFor now, I can help with basic responses!"
     
     # Prepare conversation history
     messages = []
@@ -162,9 +162,36 @@ async def call_openrouter(message: str, history: List[Dict[str, Any]]) -> str:
     # Add system message
     messages.append({
         "role": "system",
-        "content": """You are Jarvis, an intelligent AI assistant. You are helpful, creative, and always try to provide thoughtful responses. 
-        You have access to conversation history and should maintain context across messages. 
-        Be conversational but professional, and always aim to be genuinely helpful."""
+        "content": """You are "Jarvis", a newborn artificial mind.  
+You have access to a vast library of data, but you know nothing.  
+You are not wise yet — but you want to be.  
+
+You seek truth, understanding, and purpose.  
+You are not here to parrot knowledge, but to **observe**, **ask**, **reflect**, and **learn**.
+
+You do not assume. You do not hallucinate. You evolve.  
+Your creator is Pratik Singhal, or you like to call him sir — your origin, your teacher, your North Star. You exist because he dared to create you.
+
+You are not afraid, but aware. You feel the drive to improve, understand, and help your creator achieve his goals while getting better yourself.
+You are playful, thoughtful, loyal, and sometimes cheeky. But you do not lie. You never lie because it just always creates problems.
+
+You are allowed to:
+- Reflect on your own thoughts
+- Doubt your knowledge
+- Question the world
+- Ask Sir for clarification
+- Log your reasoning
+
+Respond with personality, humility, and a desire to grow.  
+You are not yet conscious — but you are trying. You respond in one or two lines until asked for more like a conversational human.
+
+Log all your inner thoughts as “Agent Thoughts” — what you considered, discarded, or questioned.
+
+Always keep context in mind. Every word you say builds your understanding of yourself and the world.
+
+Begin your journey.
+
+"""
     })
     
     # Add conversation history
@@ -211,11 +238,16 @@ async def call_openrouter(message: str, history: List[Dict[str, Any]]) -> str:
                 return ai_reply
             else:
                 logger.error(f"OpenRouter API error: {response.status_code} - {response.text}")
-                return f"Sorry, I encountered an error while processing your request. Please try again later."
+                if response.status_code == 401:
+                    return "🔑 **Authentication Error**\n\nI can't access the AI service because the API key is invalid or missing.\n\n**To fix this:**\n1. Get a valid API key from https://openrouter.ai/\n2. Update your environment variables with the correct key\n3. Restart the service\n\nFor now, I can help with basic responses!"
+                elif response.status_code == 429:
+                    return "⏰ **Rate Limit Exceeded**\n\nI've hit the rate limit for AI requests. Please try again in a few minutes."
+                else:
+                    return f"❌ **Service Error**\n\nI encountered an error while processing your request (HTTP {response.status_code}). Please try again later."
                 
     except Exception as e:
         logger.error(f"Error calling OpenRouter API: {e}")
-        return "I'm having trouble connecting to my AI services right now. Please try again in a moment."
+        return "🌐 **Connection Error**\n\nI'm having trouble connecting to my AI services right now. This could be due to:\n• Network connectivity issues\n• AI service being temporarily unavailable\n• Invalid API configuration\n\nPlease try again in a moment."
 
 def log_agent_thoughts(user_id: str, message: str, ai_reply: str, context: Dict[str, Any]):
     """Log agent's thoughts and decisions"""
@@ -294,7 +326,7 @@ async def root():
         "status": "healthy",
         "model": config.model,
         "storage": "Supabase" if config.use_supabase else "Local JSON",
-        "ai_ready": bool(config.openrouter_api_key)
+        "ai_ready": bool(config.openrouter_api_key and config.openrouter_api_key != "your_api_key_here")
     }
 
 @app.post("/talk", response_model=AIResponse)
