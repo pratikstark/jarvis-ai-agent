@@ -1,32 +1,22 @@
 import os
-import asyncio
+import threading
+import time
 from datetime import datetime
 from typing import Dict, Any
-import httpx
+import requests
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 from loguru import logger
 
-class TelegramBot:
+class SimpleTelegramBot:
     def __init__(self, token: str, jarvis_url: str):
         self.token = token
         self.jarvis_url = jarvis_url
         self.updater = None
-        self.setup_application()
+        self.is_running = False
         
-    def setup_application(self):
-        """Set up the Telegram application"""
-        try:
-            self.updater = Updater(token=self.token, use_context=True)
-            self.setup_handlers()
-        except Exception as e:
-            logger.error(f"Failed to setup Telegram application: {e}")
-            raise
-        
-    def setup_handlers(self):
+    def setup_handlers(self, dispatcher):
         """Set up command and message handlers"""
-        dispatcher = self.updater.dispatcher
-        
         # Command handlers
         dispatcher.add_handler(CommandHandler("start", self.start_command))
         dispatcher.add_handler(CommandHandler("help", self.help_command))
@@ -68,8 +58,7 @@ class TelegramBot:
         user_id = str(update.effective_user.id)
         
         try:
-            import requests
-            response = requests.get(f"{self.jarvis_url}/history/{user_id}")
+            response = requests.get(f"{self.jarvis_url}/history/{user_id}", timeout=10)
             
             if response.status_code == 200:
                 data = response.json()
@@ -101,8 +90,7 @@ class TelegramBot:
         user_id = str(update.effective_user.id)
         
         try:
-            import requests
-            response = requests.delete(f"{self.jarvis_url}/history/{user_id}")
+            response = requests.delete(f"{self.jarvis_url}/history/{user_id}", timeout=10)
             
             if response.status_code == 200:
                 update.message.reply_text("🗑️ Conversation history cleared! Let's start fresh.")
@@ -119,11 +107,13 @@ class TelegramBot:
         message_text = update.message.text
         
         # Show typing indicator
-        context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+        try:
+            context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+        except:
+            pass  # Ignore typing indicator errors
         
         try:
             # Send message to Jarvis AI Agent
-            import requests
             response = requests.post(
                 f"{self.jarvis_url}/talk",
                 json={
@@ -145,27 +135,30 @@ class TelegramBot:
         except Exception as e:
             logger.error(f"Error processing message: {e}")
             update.message.reply_text("❌ Sorry, I encountered an error. Please try again later.")
-            
-    def start(self):
-        """Start the Telegram bot"""
-        logger.info("🤖 Starting Telegram bot...")
+    
+    def start_bot(self):
+        """Start the Telegram bot in a separate thread"""
         try:
-            if not self.updater:
-                logger.error("Telegram updater not initialized")
-                raise Exception("Telegram updater not initialized")
-                
+            logger.info("🤖 Starting Telegram bot...")
+            self.updater = Updater(token=self.token, use_context=True)
+            self.setup_handlers(self.updater.dispatcher)
+            
+            # Start polling in a separate thread
             self.updater.start_polling(drop_pending_updates=True)
+            self.is_running = True
             logger.info("✅ Telegram bot is running!")
+            
         except Exception as e:
             logger.error(f"Failed to start Telegram bot: {e}")
             raise
-        
-    def stop(self):
+    
+    def stop_bot(self):
         """Stop the Telegram bot"""
         logger.info("🛑 Stopping Telegram bot...")
         try:
-            if self.updater:
+            if self.updater and self.is_running:
                 self.updater.stop()
+                self.is_running = False
         except Exception as e:
             logger.warning(f"Warning stopping updater: {e}")
         logger.info("✅ Telegram bot stopped!")
@@ -174,13 +167,24 @@ class TelegramBot:
 telegram_bot = None
 
 def start_telegram_bot(token: str, jarvis_url: str):
-    """Start the Telegram bot"""
+    """Start the Telegram bot in a separate thread"""
     global telegram_bot
-    telegram_bot = TelegramBot(token, jarvis_url)
-    telegram_bot.start()
+    try:
+        telegram_bot = SimpleTelegramBot(token, jarvis_url)
+        
+        # Start bot in a separate thread
+        bot_thread = threading.Thread(target=telegram_bot.start_bot, daemon=True)
+        bot_thread.start()
+        
+        # Give it a moment to start
+        time.sleep(2)
+        
+    except Exception as e:
+        logger.error(f"Failed to start Telegram bot: {e}")
+        raise
 
 def stop_telegram_bot():
     """Stop the Telegram bot"""
     global telegram_bot
     if telegram_bot:
-        telegram_bot.stop() 
+        telegram_bot.stop_bot() 

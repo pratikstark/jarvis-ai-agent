@@ -13,7 +13,7 @@ from loguru import logger
 from dotenv import load_dotenv
 
 # Import Telegram bot functionality
-from telegram_bot import start_telegram_bot, stop_telegram_bot
+from telegram_bot_simple import start_telegram_bot, stop_telegram_bot
 
 # Load environment variables
 load_dotenv()
@@ -250,20 +250,22 @@ async def lifespan(app: FastAPI):
     if config.enable_telegram:
         try:
             jarvis_url = f"http://localhost:{os.getenv('PORT', '8000')}"
-            await start_telegram_bot(config.telegram_token, jarvis_url)
+            start_telegram_bot(config.telegram_token, jarvis_url)
             logger.info("✅ Telegram bot started successfully")
         except Exception as e:
             logger.error(f"❌ Failed to start Telegram bot: {e}")
+            logger.info("Continuing without Telegram bot...")
     
     yield
     
     # Shutdown
     if config.enable_telegram:
         try:
-            await stop_telegram_bot()
+            stop_telegram_bot()
             logger.info("✅ Telegram bot stopped")
         except Exception as e:
             logger.error(f"❌ Error stopping Telegram bot: {e}")
+            logger.info("Continuing shutdown...")
     
     logger.info("🛑 Jarvis AI Agent shutting down...")
 
