@@ -56,7 +56,26 @@ You'll need an API key to use AI models. Here are your options:
 - Go to [OpenAI](https://platform.openai.com/)
 - Create an account and get an API key
 
-### 2. Set up your deployment
+### 2. Set up Telegram Bot (Optional)
+
+To chat with your AI through Telegram:
+
+1. **Create a Telegram Bot:**
+   - Open Telegram and search for `@BotFather`
+   - Send `/newbot` command
+   - Follow the instructions to create your bot
+   - Copy the token you receive
+
+2. **Add the token to your environment:**
+   - Add `TELEGRAM_BOT_TOKEN=your_token_here` to your `.env` file
+   - Or add it to your cloud deployment environment variables
+
+3. **Start chatting:**
+   - Find your bot on Telegram (using the username you created)
+   - Send `/start` to begin
+   - Start chatting with your AI!
+
+### 3. Set up your deployment
 
 When you deploy to Render (or any cloud platform), you'll need to add these settings:
 
@@ -65,10 +84,11 @@ When you deploy to Render (or any cloud platform), you'll need to add these sett
 
 **Optional:**
 - `AI_MODEL` - Which AI model to use (default: `anthropic/claude-3-sonnet`)
+- `TELEGRAM_BOT_TOKEN` - Your Telegram bot token (for Telegram integration)
 - `SUPABASE_URL` - For cloud storage (optional)
 - `SUPABASE_KEY` - For cloud storage (optional)
 
-### 3. Test it out
+### 4. Test it out
 
 Once deployed, you can:
 
@@ -83,6 +103,11 @@ curl -X POST "https://your-app.onrender.com/talk" \
 ```bash
 curl "https://your-app.onrender.com/history/me"
 ```
+
+**Or chat via Telegram:**
+- Find your bot on Telegram
+- Send any message to start chatting
+- Use `/help` to see available commands
 
 ## How to use
 
@@ -108,6 +133,7 @@ GET /
 ## Features
 
 - **Conversation memory** - Remembers what you've talked about
+- **Telegram integration** - Chat with your AI through Telegram
 - **Multiple AI models** - Use Claude, GPT, or other models
 - **Cloud storage** - Optional database to store conversations
 - **Simple API** - Easy to integrate with apps
