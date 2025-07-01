@@ -32,19 +32,42 @@ logger.add("agent.log", rotation="10 MB", retention="7 days", level="INFO")
 heartbeat_count = 0
 
 def post_to_slack(text):
-    webhook_url = os.getenv("SLACK_WEBHOOK")
-    if not webhook_url:
+    """Post message to Slack using Bot API"""
+    slack_token = os.getenv("SLACK_BOT_TOKEN")
+    channel_id = os.getenv("SLACK_CHANNEL_ID")
+    
+    if not slack_token or not channel_id:
+        logger.warning("Slack integration not configured. Missing SLACK_BOT_TOKEN or SLACK_CHANNEL_ID")
         return
-    payload = {
-        "text": text
-    }
-    requests.post(webhook_url, json=payload)
+    
+    try:
+        url = "https://slack.com/api/chat.postMessage"
+        headers = {
+            "Authorization": f"Bearer {slack_token}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "channel": channel_id,
+            "text": text
+        }
+        
+        response = requests.post(url, headers=headers, json=payload)
+        response.raise_for_status()
+        
+        result = response.json()
+        if not result.get("ok"):
+            logger.error(f"Slack API error: {result.get('error', 'Unknown error')}")
+        else:
+            logger.info(f"Message sent to Slack: {text[:50]}...")
+            
+    except Exception as e:
+        logger.error(f"Error posting to Slack: {e}")
 
 def heartbeat_loop():
     global heartbeat_count
     while True:
         heartbeat_count += 1
-        post_to_slack(f"💓 Heartbeat #{heartbeat_count}")
+        post_to_slack(f"💓 Heartbeat #{heartbeat_count} - Jarvis is alive and well!")
         # You can also post mood, current task, etc.
         time.sleep(60)  # every 60 seconds (1 minute)
 
@@ -77,6 +100,11 @@ class AgentConfig:
         self.telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
         self.enable_telegram = bool(self.telegram_token)
         
+        # Slack configuration
+        self.slack_token = os.getenv("SLACK_BOT_TOKEN")
+        self.slack_channel = os.getenv("SLACK_CHANNEL_ID")
+        self.enable_slack = bool(self.slack_token and self.slack_channel)
+        
         if not self.openrouter_api_key:
             logger.warning("OPENROUTER_API_KEY not found. AI responses will be simulated.")
             logger.warning("Please set your OPENROUTER_API_KEY in the .env file or environment variables.")
@@ -88,6 +116,11 @@ class AgentConfig:
             logger.info("Telegram bot is enabled")
         else:
             logger.info("Telegram bot is disabled (no TELEGRAM_BOT_TOKEN)")
+            
+        if self.enable_slack:
+            logger.info("Slack integration is enabled")
+        else:
+            logger.info("Slack integration is disabled (no SLACK_BOT_TOKEN or SLACK_CHANNEL_ID)")
         
         # Initialize memory if Supabase is available
         if self.use_supabase:
@@ -438,7 +471,11 @@ app.add_middleware(
 
 @app.on_event("startup")
 def start_heartbeat():
-    threading.Thread(target=heartbeat_loop, daemon=True).start()
+    if config.enable_slack:
+        threading.Thread(target=heartbeat_loop, daemon=True).start()
+        logger.info("✅ Heartbeat loop started")
+    else:
+        logger.info("⚠️ Heartbeat loop not started (Slack not configured)")
 
 @app.get("/")
 async def root():

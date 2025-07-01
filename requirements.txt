@@ -1,11 +1,30 @@
+# Core FastAPI dependencies
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 httpx==0.25.2
+
+# Data validation and serialization
 pydantic==2.5.0
+
+# Environment and configuration
 python-dotenv==1.0.0
+
+# Logging
 loguru==0.7.2
-supabase==2.0.2
+
+# Database and storage (using pure Python versions)
+supabase-py==2.0.2
+
+# HTTP requests
 requests==2.31.0
+
+# Web scraping and parsing
 beautifulsoup4==4.12.2
 aiohttp==3.9.1
-openai==1.3.7 
+
+# AI/ML
+openai==1.3.7
+
+# Additional dependencies for better compatibility
+lxml==4.9.3
+html5lib==1.1 
