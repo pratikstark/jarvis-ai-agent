@@ -152,8 +152,19 @@ class WebhookTelegramBot:
                 # Send AI response
                 self.send_message(chat_id, ai_reply)
             else:
-                self.send_message(chat_id, "❌ Sorry, I'm having trouble processing your message right now.")
+                error_msg = f"❌ Server error (HTTP {response.status_code})"
+                try:
+                    error_data = response.json()
+                    if "detail" in error_data:
+                        error_msg = f"❌ {error_data['detail']}"
+                except:
+                    pass
+                self.send_message(chat_id, error_msg)
                 
+        except requests.exceptions.Timeout:
+            self.send_message(chat_id, "⏰ Sorry, the request timed out. Please try again.")
+        except requests.exceptions.ConnectionError:
+            self.send_message(chat_id, "🔌 Sorry, I can't connect to the AI service right now.")
         except Exception as e:
             logger.error(f"Error processing message: {e}")
             self.send_message(chat_id, "❌ Sorry, I encountered an error. Please try again later.")

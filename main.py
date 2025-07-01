@@ -52,6 +52,7 @@ class AgentConfig:
         
         if not self.openrouter_api_key:
             logger.warning("OPENROUTER_API_KEY not found. AI responses will be simulated.")
+            logger.warning("Please set your OPENROUTER_API_KEY in the .env file or environment variables.")
         
         if not self.use_supabase:
             logger.info("Using local JSON storage for message history")
@@ -153,7 +154,7 @@ async def call_openrouter(message: str, history: List[Dict[str, Any]]) -> str:
     if not config.openrouter_api_key:
         # Simulate AI response for testing
         logger.info("Simulating AI response (no API key)")
-        return "Hello! I'm your AI agent. I'm currently running in simulation mode. Please set your OPENROUTER_API_KEY to enable real AI responses."
+        return "🤖 **AI Service Not Configured**\n\nI'm currently in simulation mode because no AI API key is configured.\n\n**To fix this:**\n1. Get an API key from https://openrouter.ai/\n2. Add it to your environment variables:\n   `OPENROUTER_API_KEY=your_key_here`\n3. Restart the service\n\nFor now, I can help with basic responses!"
     
     # Prepare conversation history
     messages = []
