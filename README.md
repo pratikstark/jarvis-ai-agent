@@ -1,256 +1,153 @@
 # Jarvis AI Agent 🤖
 
-A cloud-based Python AI agent that runs continuously on Render, maintains conversation history, and provides intelligent responses using OpenRouter's AI models.
+A simple AI chat agent that remembers your conversations and runs in the cloud. Think of it as your personal AI assistant that you can talk to anytime.
 
-## Features
+## What it does
 
-- 🌐 **Cloud-based**: Runs continuously on Render with automatic scaling
-- 💬 **Conversation Memory**: Stores message history in Supabase or local JSON
-- 🧠 **AI Integration**: Uses OpenRouter to access Claude, GPT, and other AI models
-- 📝 **Comprehensive Logging**: Logs agent thoughts and decisions
-- 🔄 **RESTful API**: Simple HTTP endpoints for easy integration
-- 🛡️ **Error Handling**: Graceful fallbacks and error recovery
-- 📊 **Health Monitoring**: Built-in health checks and status endpoints
+- 💬 **Remembers conversations** - It keeps track of what you've talked about
+- 🌐 **Always available** - Runs in the cloud so you can chat anytime
+- 🧠 **Smart responses** - Uses advanced AI models to give helpful answers
+- 📱 **Easy to use** - Just send a message and get a reply
+- 🔒 **Private** - Your conversations stay private
 
 ## Quick Start
 
-### 1. Deploy to Render (Recommended)
+### Option 1: Deploy to the cloud (Recommended)
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy/schema-new?template=https://github.com/yourusername/jarvis-ai-agent)
+1. Click the "Deploy to Render" button below
+2. Connect your GitHub account
+3. Add your API keys in the settings (see setup guide below)
+4. Wait a few minutes for deployment
+5. Start chatting with your AI!
 
-1. Click the "Deploy to Render" button above
-2. Connect your GitHub repository
-3. Set environment variables in Render dashboard:
-   - `OPENROUTER_API_KEY`: Your OpenRouter API key
-   - `SUPABASE_URL`: (Optional) Your Supabase URL
-   - `SUPABASE_KEY`: (Optional) Your Supabase anon key
-   - `AI_MODEL`: (Optional) AI model to use (default: `anthropic/claude-3-sonnet`)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy/schema-new?template=https://github.com/pratikstark/jarvis-ai-agent)
 
-### 2. Local Development
+### Option 2: Run locally
 
 ```bash
-# Clone the repository
-git clone <your-repo-url>
+# Download the code
+git clone https://github.com/pratikstark/jarvis-ai-agent.git
 cd jarvis-ai-agent
 
-# Install dependencies
+# Install Python packages
 pip install -r requirements.txt
 
-# Set up environment variables
+# Set up your API keys (see setup guide)
 cp env.example .env
-# Edit .env with your API keys
+# Edit .env with your keys
 
-# Run the server
+# Start the server
 python main.py
 ```
 
-## API Endpoints
+## Setup Guide
 
-### POST `/talk`
-Send a message to the AI agent.
+### 1. Get an AI API Key
 
-**Request:**
-```json
-{
-  "text": "Hello, how are you?",
-  "user_id": "user123"
-}
-```
+You'll need an API key to use AI models. Here are your options:
 
-**Response:**
-```json
-{
-  "reply": "Hello! I'm doing great, thank you for asking. How can I help you today?",
-  "user_id": "user123",
-  "message_id": "user123_1703123456.789",
-  "timestamp": "2023-12-21T10:30:56.789Z"
-}
-```
+**Option A: OpenRouter (Recommended)**
+- Go to [OpenRouter](https://openrouter.ai/)
+- Sign up for a free account
+- Get your API key from the dashboard
+- This gives you access to Claude, GPT, and other models
 
-### GET `/history/{user_id}`
-Get conversation history for a user.
+**Option B: OpenAI**
+- Go to [OpenAI](https://platform.openai.com/)
+- Create an account and get an API key
 
-**Response:**
-```json
-{
-  "user_id": "user123",
-  "messages": [
-    {
-      "role": "user",
-      "content": "Hello",
-      "timestamp": "2023-12-21T10:30:00Z"
-    },
-    {
-      "role": "assistant",
-      "content": "Hi there! How can I help you?",
-      "timestamp": "2023-12-21T10:30:01Z"
-    }
-  ],
-  "count": 2
-}
-```
+### 2. Set up your deployment
 
-### DELETE `/history/{user_id}`
-Clear conversation history for a user.
+When you deploy to Render (or any cloud platform), you'll need to add these settings:
 
-### GET `/`
-Health check endpoint.
+**Required:**
+- `OPENROUTER_API_KEY` - Your OpenRouter API key
 
-## Environment Variables
+**Optional:**
+- `AI_MODEL` - Which AI model to use (default: `anthropic/claude-3-sonnet`)
+- `SUPABASE_URL` - For cloud storage (optional)
+- `SUPABASE_KEY` - For cloud storage (optional)
 
-| Variable | Description | Required | Default |
-|----------|-------------|----------|---------|
-| `OPENROUTER_API_KEY` | Your OpenRouter API key | Yes | - |
-| `AI_MODEL` | AI model to use | No | `anthropic/claude-3-sonnet` |
-| `SUPABASE_URL` | Supabase project URL | No | - |
-| `SUPABASE_KEY` | Supabase anon key | No | - |
-| `PORT` | Server port | No | `8000` |
+### 3. Test it out
 
-## Supported AI Models
+Once deployed, you can:
 
-The agent supports all models available through OpenRouter:
-
-- **Claude Models**: `anthropic/claude-3-sonnet`, `anthropic/claude-3-opus`, `anthropic/claude-3-haiku`
-- **GPT Models**: `openai/gpt-4`, `openai/gpt-3.5-turbo`, `openai/gpt-4-turbo`
-- **Other Models**: `google/palm-2-chat-bison`, `meta-llama/llama-2-70b-chat`, etc.
-
-## Database Setup (Optional)
-
-If using Supabase, create these tables:
-
-### message_history
-```sql
-CREATE TABLE message_history (
-  user_id TEXT PRIMARY KEY,
-  messages JSONB NOT NULL DEFAULT '[]',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-```
-
-### agent_logs
-```sql
-CREATE TABLE agent_logs (
-  id SERIAL PRIMARY KEY,
-  timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  user_id TEXT NOT NULL,
-  user_message TEXT NOT NULL,
-  ai_reply TEXT NOT NULL,
-  context JSONB,
-  model_used TEXT,
-  history_length INTEGER,
-  thoughts TEXT
-);
-```
-
-## Usage Examples
-
-### Python Client
-```python
-import requests
-
-# Send a message
-response = requests.post("https://your-app.onrender.com/talk", json={
-    "text": "What's the weather like?",
-    "user_id": "user123"
-})
-
-print(response.json()["reply"])
-
-# Get history
-history = requests.get("https://your-app.onrender.com/history/user123")
-print(history.json()["messages"])
-```
-
-### JavaScript Client
-```javascript
-// Send a message
-const response = await fetch("https://your-app.onrender.com/talk", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-        text: "Hello, AI!",
-        user_id: "user123"
-    })
-});
-
-const data = await response.json();
-console.log(data.reply);
-```
-
-### cURL
+**Send a message:**
 ```bash
-# Send a message
 curl -X POST "https://your-app.onrender.com/talk" \
   -H "Content-Type: application/json" \
-  -d '{"text": "Hello!", "user_id": "user123"}'
-
-# Get history
-curl "https://your-app.onrender.com/history/user123"
+  -d '{"text": "Hello!", "user_id": "me"}'
 ```
 
-## Architecture
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Client App    │───▶│  Jarvis Agent   │───▶│   OpenRouter    │
-│                 │    │   (FastAPI)     │    │   (AI Models)   │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-                              │
-                              ▼
-                       ┌─────────────────┐
-                       │   Supabase      │
-                       │   (Database)    │
-                       └─────────────────┘
+**Get your chat history:**
+```bash
+curl "https://your-app.onrender.com/history/me"
 ```
 
-## Logging
+## How to use
 
-The agent logs all activities to `agent.log` with rotation:
-- Message processing
-- AI API calls
-- Database operations
-- Error handling
-- Agent thoughts and decisions
+### Send a message
+```
+POST /talk
+{
+  "text": "What's the weather like?",
+  "user_id": "your-name"
+}
+```
 
-## Monitoring
+### Get your chat history
+```
+GET /history/your-name
+```
 
-- **Health Check**: `GET /` returns service status
-- **Logs**: Check `agent.log` for detailed activity
-- **Render Dashboard**: Monitor deployment status and logs
+### Check if it's working
+```
+GET /
+```
+
+## Features
+
+- **Conversation memory** - Remembers what you've talked about
+- **Multiple AI models** - Use Claude, GPT, or other models
+- **Cloud storage** - Optional database to store conversations
+- **Simple API** - Easy to integrate with apps
+- **Always online** - Runs continuously in the cloud
+
+## Privacy & Security
+
+- Your API keys are stored securely in environment variables
+- No private information is stored in the code
+- Conversations are only stored if you set up cloud storage
+- You can delete your chat history anytime
 
 ## Troubleshooting
 
-### Common Issues
+**"AI responses will be simulated"**
+- You need to set your API key in the environment variables
 
-1. **"AI responses will be simulated"**
-   - Set your `OPENROUTER_API_KEY` environment variable
+**"Service not responding"**
+- Check if your deployment is running
+- Free services may sleep after inactivity
 
-2. **"Using local JSON storage"**
-   - Set `SUPABASE_URL` and `SUPABASE_KEY` for cloud storage
+**"Deployment failed"**
+- Make sure all required environment variables are set
+- Check that your API keys are valid
 
-3. **Deployment fails**
-   - Check that all required environment variables are set
-   - Verify your API keys are valid
+## Support
 
-### Getting Help
+If you run into issues:
+1. Check the logs in your deployment dashboard
+2. Make sure your API keys are correct
+3. Try the local version first to test
 
-- Check the logs: `agent.log` for detailed error information
-- Monitor Render dashboard for deployment issues
-- Verify API keys and database connections
+## What's next?
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## License
-
-MIT License - see LICENSE file for details.
+Once you have this running, you can:
+- Build a web interface to chat with your AI
+- Connect it to other apps
+- Add more features like file uploads
+- Customize the AI's personality
 
 ---
 
-**Built with ❤️ using FastAPI, OpenRouter, and Render** 
+**Made with ❤️ using FastAPI and modern AI models** 
