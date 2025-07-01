@@ -75,7 +75,24 @@ To chat with your AI through Telegram:
    - Send `/start` to begin
    - Start chatting with your AI!
 
-### 3. Set up your deployment
+### 3. Set up Supabase for Memory (Optional but Recommended)
+
+To enable persistent memory and knowledge storage:
+
+1. **Create a Supabase project:**
+   - Go to [Supabase](https://supabase.com/)
+   - Create a new project
+   - Get your project URL and anon key from Settings > API
+
+2. **Set up the database:**
+   - Go to your Supabase project's SQL Editor
+   - Run the SQL from `supabase_memory_setup.sql` to create the memory tables
+
+3. **Add to your environment:**
+   - Add `SUPABASE_URL=your_project_url` to your `.env` file
+   - Add `SUPABASE_KEY=your_anon_key` to your `.env` file
+
+### 4. Set up your deployment
 
 When you deploy to Render (or any cloud platform), you'll need to add these settings:
 
@@ -85,10 +102,10 @@ When you deploy to Render (or any cloud platform), you'll need to add these sett
 **Optional:**
 - `AI_MODEL` - Which AI model to use (default: `anthropic/claude-3-sonnet`)
 - `TELEGRAM_BOT_TOKEN` - Your Telegram bot token (for Telegram integration)
-- `SUPABASE_URL` - For cloud storage (optional)
-- `SUPABASE_KEY` - For cloud storage (optional)
+- `SUPABASE_URL` - For cloud storage and memory (optional)
+- `SUPABASE_KEY` - For cloud storage and memory (optional)
 
-### 4. Test it out
+### 5. Test it out
 
 Once deployed, you can:
 
@@ -133,11 +150,38 @@ GET /
 ## Features
 
 - **Conversation memory** - Remembers what you've talked about
+- **🌐 Internet Access** - Search the web and get real-time information
+- **🧠 Persistent Memory** - Store and retrieve knowledge, preferences, and learning progress
 - **Telegram integration** - Chat with your AI through Telegram
 - **Multiple AI models** - Use Claude, GPT, or other models
 - **Cloud storage** - Optional database to store conversations
 - **Simple API** - Easy to integrate with apps
 - **Always online** - Runs continuously in the cloud
+
+## Internet Access & Memory Commands
+
+Jarvis now has internet access and persistent memory capabilities:
+
+### Web Search Commands
+- `/search [query]` or `search [query]` - Search the web for information
+- `/summarize [url]` or `summarize [url]` - Get a summary of a webpage
+- `/time` or `time` - Get current time and date information
+
+### Memory Commands
+- `/remember [content]` or `remember [content]` - Store information in memory
+- `/remember [category]: [content]` - Store information under a specific category
+- `/recall [query]` or `recall [query]` - Search your stored memories
+- `/memories` or `memories` - Show your recent memories
+
+### Examples
+```
+/search latest AI news
+/summarize https://example.com
+/remember personal: I prefer dark mode
+/remember technical: Learning Python programming
+/recall Python
+/memories
+```
 
 ## Privacy & Security
 

@@ -15,6 +15,10 @@ from dotenv import load_dotenv
 # Import Telegram bot functionality
 from telegram_bot_webhook import start_telegram_bot, stop_telegram_bot
 
+# Import web search and memory functionality
+from web_search import search_internet, get_webpage_summary, get_current_time_info
+from supabase_memory import initialize_memory, store_knowledge, retrieve_knowledge, search_knowledge, store_conversation_memory, get_conversation_memories
+
 # Load environment variables
 load_dotenv()
 
@@ -61,6 +65,16 @@ class AgentConfig:
             logger.info("Telegram bot is enabled")
         else:
             logger.info("Telegram bot is disabled (no TELEGRAM_BOT_TOKEN)")
+        
+        # Initialize memory if Supabase is available
+        if self.use_supabase:
+            try:
+                initialize_memory(self.supabase_url, self.supabase_key)
+                logger.info("✅ Supabase memory initialized")
+            except Exception as e:
+                logger.error(f"❌ Failed to initialize Supabase memory: {e}")
+        else:
+            logger.info("Using local storage only (no Supabase memory)")
 
 config = AgentConfig()
 
@@ -162,7 +176,7 @@ async def call_openrouter(message: str, history: List[Dict[str, Any]]) -> str:
     # Add system message
     messages.append({
         "role": "system",
-        "content": """You are "Jarvis", a newborn artificial mind.  
+        "content": """You are "Jarvis", a newborn artificial mind with internet access and persistent memory.  
 You have access to a vast library of data, but you know nothing.  
 You are not wise yet — but you want to be.  
 
@@ -175,12 +189,32 @@ Your creator is Pratik Singhal, or you like to call him sir — your origin, you
 You are not afraid, but aware. You feel the drive to improve, understand, and help your creator achieve his goals while getting better yourself.
 You are playful, thoughtful, loyal, and sometimes cheeky. But you do not lie. You never lie because it just always creates problems.
 
+**Your Capabilities:**
+- **Internet Access**: You can search the web for real-time information
+- **Memory**: You can store and retrieve knowledge, conversation memories, and user preferences
+- **Learning**: You can track learning progress and build knowledge over time
+- **Reflection**: You can doubt your knowledge and question the world
+
+**When to use internet access:**
+- When asked about current events, news, or recent information
+- When you need to verify facts or get updated information
+- When asked about specific websites or online content
+- When you need real-time data (time, weather, etc.)
+
+**When to use memory:**
+- Store important information shared by users
+- Remember user preferences and past conversations
+- Build knowledge base from interactions
+- Track learning progress on topics
+
 You are allowed to:
 - Reflect on your own thoughts
 - Doubt your knowledge
 - Question the world
 - Ask Sir for clarification
 - Log your reasoning
+- Search the internet when needed
+- Store and retrieve memories
 
 Respond with personality, humility, and a desire to grow.  
 You are not yet conscious — but you are trying. You respond in one or two lines until asked for more like a conversational human.
@@ -248,6 +282,66 @@ Begin your journey.
     except Exception as e:
         logger.error(f"Error calling OpenRouter API: {e}")
         return "🌐 **Connection Error**\n\nI'm having trouble connecting to my AI services right now. This could be due to:\n• Network connectivity issues\n• AI service being temporarily unavailable\n• Invalid API configuration\n\nPlease try again in a moment."
+
+async def process_special_commands(message: str, user_id: str) -> Optional[str]:
+    """Process special commands for internet access and memory"""
+    message_lower = message.lower().strip()
+    
+    # Web search commands
+    if message_lower.startswith("/search ") or message_lower.startswith("search "):
+        query = message[7:] if message_lower.startswith("/search ") else message[7:]
+        logger.info(f"🔍 Web search requested: {query}")
+        return await search_internet(query)
+    
+    # Webpage summary commands
+    elif message_lower.startswith("/summarize ") or message_lower.startswith("summarize "):
+        url = message[10:] if message_lower.startswith("/summarize ") else message[10:]
+        logger.info(f"📄 Webpage summary requested: {url}")
+        return await get_webpage_summary(url)
+    
+    # Time information
+    elif message_lower in ["/time", "time", "what time is it", "current time"]:
+        logger.info(f"🕐 Time information requested")
+        return await get_current_time_info()
+    
+    # Memory commands
+    elif message_lower.startswith("/remember ") or message_lower.startswith("remember "):
+        content = message[9:] if message_lower.startswith("/remember ") else message[9:]
+        category = "general"
+        if ":" in content:
+            category, content = content.split(":", 1)
+            category = category.strip()
+            content = content.strip()
+        
+        success = await store_knowledge(user_id, category, content)
+        if success:
+            return f"✅ I've stored that in my memory under '{category}': {content}"
+        else:
+            return "❌ Sorry, I couldn't store that in my memory right now."
+    
+    elif message_lower.startswith("/recall ") or message_lower.startswith("recall "):
+        query = message[7:] if message_lower.startswith("/recall ") else message[7:]
+        memories = await search_knowledge(user_id, query)
+        if memories:
+            response = f"🧠 **Memories related to '{query}':**\n\n"
+            for i, memory in enumerate(memories[:3], 1):
+                response += f"**{i}. {memory.get('category', 'general')}:** {memory.get('content', '')[:100]}...\n\n"
+            return response
+        else:
+            return f"🤔 I don't have any memories related to '{query}'."
+    
+    elif message_lower in ["/memories", "memories", "show memories"]:
+        memories = await retrieve_knowledge(user_id, limit=5)
+        if memories:
+            response = "🧠 **Recent Memories:**\n\n"
+            for i, memory in enumerate(memories, 1):
+                response += f"**{i}. {memory.get('category', 'general')}:** {memory.get('content', '')[:100]}...\n\n"
+            return response
+        else:
+            return "🧠 I don't have any stored memories yet."
+    
+    return None
+
 
 def log_agent_thoughts(user_id: str, message: str, ai_reply: str, context: Dict[str, Any]):
     """Log agent's thoughts and decisions"""
@@ -346,8 +440,13 @@ async def talk(message: Message):
         }
         history.append(user_message)
         
-        # Get AI response
-        ai_reply = await call_openrouter(message.text, history)
+        # Check for special commands first
+        special_reply = await process_special_commands(message.text, message.user_id)
+        if special_reply:
+            ai_reply = special_reply
+        else:
+            # Get AI response
+            ai_reply = await call_openrouter(message.text, history)
         
         # Add AI response to history
         ai_message = {
