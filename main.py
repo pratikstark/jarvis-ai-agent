@@ -4,7 +4,7 @@ import asyncio
 import time
 import threading
 import requests
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 from contextlib import asynccontextmanager
 
@@ -155,7 +155,7 @@ def save_local_history(history: Dict[str, MessageHistory]):
     """Save message history to local JSON file"""
     try:
         data = {
-            user_id: history_data.dict()
+            user_id: history_data.model_dump()
             for user_id, history_data in history.items()
         }
         with open(LOCAL_STORAGE_FILE, 'w') as f:
@@ -187,7 +187,7 @@ def get_message_history(user_id: str) -> List[Dict[str, Any]]:
 
 def save_message_history(user_id: str, messages: List[Dict[str, Any]]):
     """Save message history for a user"""
-    now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
     
     if config.use_supabase:
         try:
@@ -397,7 +397,7 @@ def log_agent_thoughts(user_id: str, message: str, ai_reply: str, context: Dict[
         thought_summary = f"Analyzed message from user {user_id}, considered context with {len(context.get('history', []))} previous messages"
     
     log_entry = {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "user_id": user_id,
         "user_message": message,
         "ai_reply": ai_reply,
@@ -492,7 +492,7 @@ async def talk(message: Message):
         user_message = {
             "role": "user",
             "content": message.text,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         history.append(user_message)
         
@@ -508,7 +508,7 @@ async def talk(message: Message):
         ai_message = {
             "role": "assistant",
             "content": ai_reply,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         history.append(ai_message)
         
@@ -527,8 +527,8 @@ async def talk(message: Message):
         response = AIResponse(
             reply=ai_reply,
             user_id=message.user_id,
-            message_id=f"{message.user_id}_{datetime.utcnow().timestamp()}",
-            timestamp=datetime.utcnow()
+            message_id=f"{message.user_id}_{datetime.now(timezone.utc).timestamp()}",
+            timestamp=datetime.now(timezone.utc)
         )
         
         logger.info(f"Successfully processed message for user {message.user_id}")
