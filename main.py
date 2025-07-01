@@ -18,9 +18,20 @@ from dotenv import load_dotenv
 # Import Telegram bot functionality
 from telegram_bot_webhook import start_telegram_bot, stop_telegram_bot
 
-# Import web search and memory functionality
-from web_search import search_internet, get_webpage_summary, get_current_time_info
-from supabase_memory import initialize_memory, store_knowledge, retrieve_knowledge, search_knowledge, store_conversation_memory, get_conversation_memories
+# Import web search and memory functionality (temporarily disabled for deployment)
+try:
+    from web_search import search_internet, get_webpage_summary, get_current_time_info
+    WEB_SEARCH_AVAILABLE = True
+except ImportError:
+    WEB_SEARCH_AVAILABLE = False
+    logger.warning("Web search functionality disabled - missing dependencies")
+
+try:
+    from supabase_memory import initialize_memory, store_knowledge, retrieve_knowledge, search_knowledge, store_conversation_memory, get_conversation_memories
+    MEMORY_AVAILABLE = True
+except ImportError:
+    MEMORY_AVAILABLE = False
+    logger.warning("Memory functionality disabled - missing dependencies")
 
 # Load environment variables
 load_dotenv()
@@ -123,7 +134,7 @@ class AgentConfig:
             logger.info("Slack integration is disabled (no SLACK_BOT_TOKEN or SLACK_CHANNEL_ID)")
         
         # Initialize memory if Supabase is available
-        if self.use_supabase:
+        if self.use_supabase and MEMORY_AVAILABLE:
             try:
                 initialize_memory(self.supabase_url, self.supabase_key)
                 logger.info("✅ Supabase memory initialized")
@@ -328,23 +339,31 @@ async def process_special_commands(message: str, user_id: str) -> Optional[str]:
     
     # Web search commands
     if message_lower.startswith("/search ") or message_lower.startswith("search "):
+        if not WEB_SEARCH_AVAILABLE:
+            return "🔍 **Web Search Temporarily Unavailable**\n\nWeb search functionality is currently disabled due to missing dependencies. This will be restored once deployment is complete."
         query = message[7:] if message_lower.startswith("/search ") else message[7:]
         logger.info(f"🔍 Web search requested: {query}")
         return await search_internet(query)
     
     # Webpage summary commands
     elif message_lower.startswith("/summarize ") or message_lower.startswith("summarize "):
+        if not WEB_SEARCH_AVAILABLE:
+            return "📄 **Webpage Summary Temporarily Unavailable**\n\nWebpage summary functionality is currently disabled due to missing dependencies. This will be restored once deployment is complete."
         url = message[10:] if message_lower.startswith("/summarize ") else message[10:]
         logger.info(f"📄 Webpage summary requested: {url}")
         return await get_webpage_summary(url)
     
     # Time information
     elif message_lower in ["/time", "time", "what time is it", "current time"]:
+        if not WEB_SEARCH_AVAILABLE:
+            return "🕐 **Time Information Temporarily Unavailable**\n\nTime information functionality is currently disabled due to missing dependencies. This will be restored once deployment is complete."
         logger.info(f"🕐 Time information requested")
         return await get_current_time_info()
     
     # Memory commands
     elif message_lower.startswith("/remember ") or message_lower.startswith("remember "):
+        if not MEMORY_AVAILABLE:
+            return "🧠 **Memory Temporarily Unavailable**\n\nMemory functionality is currently disabled due to missing dependencies. This will be restored once deployment is complete."
         content = message[9:] if message_lower.startswith("/remember ") else message[9:]
         category = "general"
         if ":" in content:
@@ -359,17 +378,21 @@ async def process_special_commands(message: str, user_id: str) -> Optional[str]:
             return "❌ Sorry, I couldn't store that in my memory right now."
     
     elif message_lower.startswith("/recall ") or message_lower.startswith("recall "):
+        if not MEMORY_AVAILABLE:
+            return "🧠 **Memory Temporarily Unavailable**\n\nMemory functionality is currently disabled due to missing dependencies. This will be restored once deployment is complete."
         query = message[7:] if message_lower.startswith("/recall ") else message[7:]
         memories = await search_knowledge(user_id, query)
         if memories:
             response = f"🧠 **Memories related to '{query}':**\n\n"
             for i, memory in enumerate(memories[:3], 1):
-                response += f"**{i}. {memory.get('category', 'general')}:** {memory.get('content', '')[:100]}...\n\n"
+                response += f"**{1}. {memory.get('category', 'general')}:** {memory.get('content', '')[:100]}...\n\n"
             return response
         else:
             return f"🤔 I don't have any memories related to '{query}'."
     
     elif message_lower in ["/memories", "memories", "show memories"]:
+        if not MEMORY_AVAILABLE:
+            return "🧠 **Memory Temporarily Unavailable**\n\nMemory functionality is currently disabled due to missing dependencies. This will be restored once deployment is complete."
         memories = await retrieve_knowledge(user_id, limit=5)
         if memories:
             response = "🧠 **Recent Memories:**\n\n"
