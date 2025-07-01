@@ -13,7 +13,7 @@ from loguru import logger
 from dotenv import load_dotenv
 
 # Import Telegram bot functionality
-from telegram_bot_simple import start_telegram_bot, stop_telegram_bot
+from telegram_bot_webhook import start_telegram_bot, stop_telegram_bot
 
 # Load environment variables
 load_dotenv()
