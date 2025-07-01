@@ -1,6 +1,9 @@
 import os
 import json
 import asyncio
+import time
+import threading
+import requests
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 from contextlib import asynccontextmanager
@@ -24,6 +27,26 @@ load_dotenv()
 
 # Configure logging
 logger.add("agent.log", rotation="10 MB", retention="7 days", level="INFO")
+
+# Global heartbeat counter
+heartbeat_count = 0
+
+def post_to_slack(text):
+    webhook_url = os.getenv("SLACK_WEBHOOK")
+    if not webhook_url:
+        return
+    payload = {
+        "text": text
+    }
+    requests.post(webhook_url, json=payload)
+
+def heartbeat_loop():
+    global heartbeat_count
+    while True:
+        heartbeat_count += 1
+        post_to_slack(f"💓 Heartbeat #{heartbeat_count}")
+        # You can also post mood, current task, etc.
+        time.sleep(60)  # every 60 seconds (1 minute)
 
 class Message(BaseModel):
     text: str = Field(..., description="The message text from the user")
@@ -412,6 +435,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+def start_heartbeat():
+    threading.Thread(target=heartbeat_loop, daemon=True).start()
 
 @app.get("/")
 async def root():
