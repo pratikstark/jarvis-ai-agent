@@ -1,7 +1,7 @@
 # Ultra-minimal requirements for deployment testing
-fastapi==0.104.1
-uvicorn==0.24.0
+fastapi==0.95.2
+uvicorn==0.22.0
 python-dotenv==1.0.0
 pydantic==1.10.13
 requests==2.31.0
-httpx==0.25.2 
+httpx==0.24.1 
