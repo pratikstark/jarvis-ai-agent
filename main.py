@@ -166,7 +166,7 @@ def save_local_history(history: Dict[str, MessageHistory]):
     """Save message history to local JSON file"""
     try:
         data = {
-            user_id: history_data.model_dump()
+            user_id: history_data.dict()
             for user_id, history_data in history.items()
         }
         with open(LOCAL_STORAGE_FILE, 'w') as f:
