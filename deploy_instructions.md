@@ -44,7 +44,7 @@ This guide will help you deploy your Jarvis AI Agent to Render for continuous op
    - **Name**: `jarvis-ai-agent`
    - **Environment**: `Python 3`
    - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+   - **Start Command**: `python main.py`
 
 ## Step 3: Configure Environment Variables
 
@@ -154,7 +154,7 @@ If you want to use Supabase for persistent storage:
 ### Heroku
 1. Create `Procfile`:
    ```
-   web: uvicorn main:app --host 0.0.0.0 --port $PORT
+   web: python main.py
    ```
 2. Deploy using Heroku CLI or GitHub integration
 
