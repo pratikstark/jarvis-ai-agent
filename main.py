@@ -198,7 +198,7 @@ def get_message_history(user_id: str) -> List[Dict[str, Any]]:
 
 def save_message_history(user_id: str, messages: List[Dict[str, Any]]):
     """Save message history for a user"""
-            now = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc)
     
     if config.use_supabase:
         try:
